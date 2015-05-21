@@ -9,6 +9,8 @@ and then in python:
 
 ```
 from python_dependency_verifier import python_dependency_verifier
+
+
 path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
 filename = "/setup.py"
 field_dependency_name = "install_requires=["
