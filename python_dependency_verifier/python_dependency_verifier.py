@@ -24,18 +24,21 @@ def fix_unequal_conditions(string):
 
 
 def remove_comments(string):
-    """
-    :param string:
-    :return:
-    """
+    """receives string and returns it without inline comments"""
     return re.sub(re.compile("#.*?\n"), "", string)
 
 
 def get_file_contents(path_to_file):
+    """receives a path to file and returns its contents as string"""
     return open(path_to_file).read()
 
 
 def get_append_list(file_contents, ignore_this):
+    """receives a string: file_contents which should be a setup.py file,
+    and a string regex: ignore_this
+    returns a list of requirements which
+    are added via the append clause
+    and ignores the ones that match the regex"""
     list_of_appended_requirements = []
     while "install_requires.append(" in file_contents:
         starts_at = file_contents.find("install_requires.append(")
@@ -49,7 +52,11 @@ def get_append_list(file_contents, ignore_this):
 
 
 def get_install_requires_field_contents(file_contents):
-    file_contents = fix_unequal_conditions(remove_comments(file_contents).replace(" = ", "="))
+    """receives a string: file_contents which should be a setup.py file,
+    returns a list of requirements which
+    are added via the install_requires variable"""
+    file_contents = fix_unequal_conditions(
+        remove_comments(file_contents).replace(" = ", "="))
     file_contents = ''.join(file_contents.splitlines())
     starts_at = file_contents.find("install_requires=[")
     file_contents = file_contents[starts_at + 18:]
@@ -62,6 +69,8 @@ def get_install_requires_field_contents(file_contents):
 
 def filter_list_for_unversioned_dependencies(
         list_of_dependencies, ignore_this):
+    """Receives a list of dependencies and ignore_this regex
+    filters it for items matching the regex and only unversioned items"""
     unversioned_dependencies = []
     for dependency in list_of_dependencies:
         if dependency != '':
@@ -73,6 +82,8 @@ def filter_list_for_unversioned_dependencies(
 
 
 def filter_list_for_versioned_dependencies(list_of_dependencies, ignore_this):
+    """Receives a list of dependencies and ignore_this regex
+    filters it for items matching the regex and only versioned items"""
     versioned_dependencies = []
     for dependency in list_of_dependencies:
         if dependency != '':
@@ -84,6 +95,14 @@ def filter_list_for_versioned_dependencies(list_of_dependencies, ignore_this):
 
 
 def get_dependency_with_latest_version(list_of_dependencies, ignore_this):
+    """receives a list of items from install_requires field
+    in the form of ITEMNAME RELATION VERSION
+    like pika==0.9.13
+    and returns the following dictionary:
+    [name, is_locked_to_specific_version, version_locked_to,
+    version available from pip]
+    per item"""
+
     dependencies = []
     for dependency in list_of_dependencies:
         if dependency != '':
@@ -93,6 +112,12 @@ def get_dependency_with_latest_version(list_of_dependencies, ignore_this):
 
 
 def string_dependency_to_dict(string_dependency):
+    """receives an item from install_requires field
+    in the form of ITEMNAME RELATION VERSION
+    like pika==0.9.13
+    and returns the following dictionary:
+    [name, is_locked_to_specific_version, version_locked_to,
+    latest version available from pip]"""
     dependency_dict = re.split("<|>|=", string_dependency)
     is_locked = False
     if "==" in string_dependency:
@@ -104,6 +129,8 @@ def string_dependency_to_dict(string_dependency):
 
 
 def get_latest_version_number(package_name):
+    """receives a package name and
+    returns the latest version its available in from pip"""
     pkg, all_versions = CheeseShop().query_versions_pypi(package_name)
     if len(all_versions):
         return all_versions[0]
@@ -112,6 +139,12 @@ def get_latest_version_number(package_name):
 
 def check_all_filename_in_subdirs(path, filename_to_search_for,
                                   field_dependency_name, ignore_this):
+    """receives a path and setup filename to search for,
+    a field dependency name and regex to ignore
+    prints filename and the list of dependencies it uses,
+    whether they are version locked,
+    which version and the latest version of the package available on pip
+    """
     for dir in os.listdir(path):
         try:
             filename = path + dir + filename_to_search_for

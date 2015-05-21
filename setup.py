@@ -22,7 +22,8 @@ setup(
     author_email='gil@gigaspaces.com',
     packages=['python_dependency_verifier'],
     license='LICENSE',
-    description='A tool to make sure that all dependencies in a python project are version locked and up to date',
+    description='A tool to make sure that all dependencies in a python '
+                'project are version locked and up to date',
     zip_safe=False,
     install_requires=['yolk'],
     entry_points={}
