@@ -7,7 +7,7 @@ How to use:
 
 and then in python:
 
-```
+```python
 from python_dependency_verifier import python_dependency_verifier
 
 
