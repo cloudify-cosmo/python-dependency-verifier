@@ -163,6 +163,35 @@ def check_all_filename_in_subdirs(path, filename_to_search_for,
         except IOError:
             continue
 
+
+def check_all_filename_in_subdirs(path, filename_to_search_for,
+                                  field_dependency_name, ignore_this):
+    """receives a path and setup filename to search for,
+    a field dependency name and regex to ignore
+    returns a dict of filename and the list of dependencies it uses,
+    whether they are version locked,
+    which version and the latest version of the package available on pip
+    """
+    result = []
+    for dir in os.listdir(path):
+        try:
+            filename = path + dir + filename_to_search_for
+            file_contents = get_file_contents(filename)
+            file_contents = file_contents.replace(" = ", "=")
+            if field_dependency_name not in file_contents:
+                continue
+            dependency_list = get_dependency_with_latest_version(
+                get_install_requires_field_contents(file_contents),
+                ignore_this)
+            dependency_list += get_append_list(file_contents, ignore_this)
+            if dependency_list is not []:
+                result.append([filename, dependency_list])
+
+        except IOError:
+            continue
+
+    return result
+
 # path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
 # filename = "/setup.py"
 # field_dependency_name = "install_requires=["
