@@ -2,8 +2,9 @@
 A tool to make sure that all dependencies in a python project are version locked and up to date
 
 How to use:
-
-`$ pip install https://github.com/cloudify-cosmo/python-dependency-verifier/archive/master.zip`
+```bash
+$ pip install https://github.com/cloudify-cosmo/python-dependency-verifier/archive/master.zip
+```
 
 and then in python:
 
