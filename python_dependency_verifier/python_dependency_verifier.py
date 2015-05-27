@@ -137,7 +137,7 @@ def get_latest_version_number(package_name):
     return None
 
 
-def check_all_filename_in_subdirs(path, filename_to_search_for,
+def print_all_filename_in_subdirs(path, filename_to_search_for,
                                   field_dependency_name, ignore_this):
     """receives a path and setup filename to search for,
     a field dependency name and regex to ignore
