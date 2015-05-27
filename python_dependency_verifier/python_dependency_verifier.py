@@ -30,7 +30,8 @@ def remove_comments(string):
 
 def get_file_contents(path_to_file):
     """receives a path to file and returns its contents as string"""
-    return open(path_to_file).read()
+    with open(path_to_file, 'r') as f:
+        return f.read()
 
 
 def get_append_list(file_contents, ignore_this):
@@ -46,8 +47,8 @@ def get_append_list(file_contents, ignore_this):
         ends_at = file_contents.find(")")
         list_of_appended_requirements.append(
             string_dependency_to_dict(
-                file_contents[:ends_at]
-                .replace(" ", "").replace("\'", "").replace("\"", "")))
+                file_contents[:ends_at].replace(" ", "").replace(
+                    "\'", "").replace("\"", "")))
     return list_of_appended_requirements
 
 
@@ -56,13 +57,13 @@ def get_install_requires_field_contents(file_contents):
     returns a list of requirements which
     are added via the install_requires variable"""
     file_contents = fix_unequal_conditions(
-        remove_comments(file_contents).replace(" = ", "="))
+        remove_comments(file_contents).replace(" = ", "="))  # move all of these into functions
     file_contents = ''.join(file_contents.splitlines())
     starts_at = file_contents.find("install_requires=[")
     file_contents = file_contents[starts_at + 18:]
     ends_at = file_contents.find("]") - 2
     file_contents = file_contents[:ends_at]
-    list_of_requirements = file_contents.replace(" ", "")\
+    list_of_requirements = file_contents.replace(" ", "") \
         .replace("\'", "").replace("\"", "").split(",")
     return list_of_requirements
 
@@ -104,10 +105,10 @@ def get_dependency_with_latest_version(list_of_dependencies, ignore_this):
     per item"""
 
     dependencies = []
+    # maybe convert to list comprehension x = [d[5] for d in x if y]
     for dependency in list_of_dependencies:
-        if dependency != '':
-            if not re.match(re.compile(ignore_this), dependency):
-                dependencies.append(string_dependency_to_dict(dependency))
+        if dependency and not re.match(re.compile(ignore_this), dependency):
+            dependencies.append(string_dependency_to_dict(dependency))
     return dependencies
 
 
@@ -119,7 +120,7 @@ def string_dependency_to_dict(string_dependency):
     [name, is_locked_to_specific_version, version_locked_to,
     latest version available from pip]"""
     dependency_dict = re.split("<|>|=", string_dependency)
-    is_locked = False
+    is_locked = False  # better naming
     if "==" in string_dependency:
         is_locked = True
     version_relation = string_dependency.replace(dependency_dict[0], "")
@@ -175,20 +176,22 @@ def check_all_filename_in_subdirs(path, filename_to_search_for,
     result = []
     for dir in os.listdir(path):
         try:
-            filename = path + dir + filename_to_search_for
+            filename = path + dir + filename_to_search_for #use os.path.join
             file_contents = get_file_contents(filename)
-            file_contents = file_contents.replace(" = ", "=")
+            file_contents = file_contents.replace(" = ", "=") #validate only setup.py files
             if field_dependency_name not in file_contents:
-                continue
+                continue #add meaningful message to log
             dependency_list = get_dependency_with_latest_version(
                 get_install_requires_field_contents(file_contents),
                 ignore_this)
             dependency_list += get_append_list(file_contents, ignore_this)
-            if dependency_list is not []:
+            if dependency_list:
                 result.append([filename, dependency_list])
 
-        except IOError:
-            continue
+        except IOError: #move to inside read function
+            continue #add meaningful message to log
+            # except IOError as ex:
+            #     logger.error('could not bla bla {0}'.format(ex.message))
 
     return result
 
