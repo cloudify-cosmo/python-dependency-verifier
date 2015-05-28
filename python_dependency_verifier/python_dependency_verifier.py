@@ -14,102 +14,12 @@
 # limitations under the License.
 ############
 
+import logging
 import os
 import re
 from yolk.pypi import CheeseShop
 
-
-def fix_unequal_conditions(string):
-    return string.replace(",<", "<")
-
-
-def remove_comments(string):
-    """receives string and returns it without inline comments"""
-    return re.sub(re.compile("#.*?\n"), "", string)
-
-
-def get_file_contents(path_to_file):
-    """receives a path to file and returns its contents as string"""
-    with open(path_to_file, 'r') as f:
-        return f.read()
-
-
-def get_append_list(file_contents, ignore_this):
-    """receives a string: file_contents which should be a setup.py file,
-    and a string regex: ignore_this
-    returns a list of requirements which
-    are added via the append clause
-    and ignores the ones that match the regex"""
-    list_of_appended_requirements = []
-    while "install_requires.append(" in file_contents:
-        starts_at = file_contents.find("install_requires.append(")
-        file_contents = file_contents[starts_at + 24:]
-        ends_at = file_contents.find(")")
-        list_of_appended_requirements.append(
-            string_dependency_to_dict(
-                file_contents[:ends_at].replace(" ", "").replace(
-                    "\'", "").replace("\"", "")))
-    return list_of_appended_requirements
-
-
-def get_install_requires_field_contents(file_contents):
-    """receives a string: file_contents which should be a setup.py file,
-    returns a list of requirements which
-    are added via the install_requires variable"""
-    file_contents = fix_unequal_conditions(
-        remove_comments(file_contents).replace(" = ", "="))  # move all of these into functions
-    file_contents = ''.join(file_contents.splitlines())
-    starts_at = file_contents.find("install_requires=[")
-    file_contents = file_contents[starts_at + 18:]
-    ends_at = file_contents.find("]") - 2
-    file_contents = file_contents[:ends_at]
-    list_of_requirements = file_contents.replace(" ", "") \
-        .replace("\'", "").replace("\"", "").split(",")
-    return list_of_requirements
-
-
-def filter_list_for_unversioned_dependencies(
-        list_of_dependencies, ignore_this):
-    """Receives a list of dependencies and ignore_this regex
-    filters it for items matching the regex and only unversioned items"""
-    unversioned_dependencies = []
-    for dependency in list_of_dependencies:
-        if dependency != '':
-            if "==" not in dependency:
-                if not re.match(re.compile(ignore_this), dependency):
-                    unversioned_dependencies.append(
-                        string_dependency_to_dict(dependency))
-    return unversioned_dependencies
-
-
-def filter_list_for_versioned_dependencies(list_of_dependencies, ignore_this):
-    """Receives a list of dependencies and ignore_this regex
-    filters it for items matching the regex and only versioned items"""
-    versioned_dependencies = []
-    for dependency in list_of_dependencies:
-        if dependency != '':
-            if "=" in dependency:
-                if not re.match(re.compile(ignore_this), dependency):
-                    versioned_dependencies.append(
-                        string_dependency_to_dict(dependency))
-    return versioned_dependencies
-
-
-def get_dependency_with_latest_version(list_of_dependencies, ignore_this):
-    """receives a list of items from install_requires field
-    in the form of ITEMNAME RELATION VERSION
-    like pika==0.9.13
-    and returns the following dictionary:
-    [name, is_locked_to_specific_version, version_locked_to,
-    version available from pip]
-    per item"""
-
-    dependencies = []
-    # maybe convert to list comprehension x = [d[5] for d in x if y]
-    for dependency in list_of_dependencies:
-        if dependency and not re.match(re.compile(ignore_this), dependency):
-            dependencies.append(string_dependency_to_dict(dependency))
-    return dependencies
+filename_to_search_for = "setup.py"
 
 
 def string_dependency_to_dict(string_dependency):
@@ -119,13 +29,17 @@ def string_dependency_to_dict(string_dependency):
     and returns the following dictionary:
     [name, is_locked_to_specific_version, version_locked_to,
     latest version available from pip]"""
-    dependency_dict = re.split("<|>|=", string_dependency)
+    dependency_list = re.split("<|>|=", string_dependency)
     is_locked = False  # better naming
     if "==" in string_dependency:
         is_locked = True
-    version_relation = string_dependency.replace(dependency_dict[0], "")
-    dependency_dict = [dependency_dict[0], is_locked, version_relation,
-                       get_latest_version_number(dependency_dict[0])]
+    dependency_name = dependency_list[0]
+    version_relation = string_dependency.replace(dependency_name, "")
+    dependency_dict = {"name": dependency_name,
+                       "is_locked": is_locked,
+                       "version_relation": version_relation,
+                       "latest_available":
+                           get_latest_version_number(dependency_name)}
     return dependency_dict
 
 
@@ -138,65 +52,146 @@ def get_latest_version_number(package_name):
     return None
 
 
-def check_all_filename_in_subdirs(path, filename_to_search_for,
-                                  field_dependency_name, ignore_this):
-    """receives a path and setup filename to search for,
-    a field dependency name and regex to ignore
-    prints filename and the list of dependencies it uses,
-    whether they are version locked,
-    which version and the latest version of the package available on pip
-    """
-    for dir in os.listdir(path):
-        try:
-            filename = path + dir + filename_to_search_for
-            file_contents = get_file_contents(filename)
-            file_contents = file_contents.replace(" = ", "=")
-            if field_dependency_name not in file_contents:
-                continue
-            dependency_list = get_dependency_with_latest_version(
-                get_install_requires_field_contents(file_contents),
-                ignore_this)
-            dependency_list += get_append_list(file_contents, ignore_this)
-            if dependency_list is not []:
-                print filename
-                print dependency_list
-
-        except IOError:
-            continue
+def fix_unequal_conditions(string):
+    """makes <> conditions human readable"""
+    return string.replace(",<", "<")
 
 
-def check_all_filename_in_subdirs(path, filename_to_search_for,
-                                  field_dependency_name, ignore_this):
-    """receives a path and setup filename to search for,
-    a field dependency name and regex to ignore
-    returns a dict of filename and the list of dependencies it uses,
-    whether they are version locked,
-    which version and the latest version of the package available on pip
-    """
-    result = []
-    for dir in os.listdir(path):
-        try:
-            filename = path + dir + filename_to_search_for #use os.path.join
-            file_contents = get_file_contents(filename)
-            file_contents = file_contents.replace(" = ", "=") #validate only setup.py files
-            if field_dependency_name not in file_contents:
-                continue #add meaningful message to log
-            dependency_list = get_dependency_with_latest_version(
-                get_install_requires_field_contents(file_contents),
-                ignore_this)
-            dependency_list += get_append_list(file_contents, ignore_this)
-            if dependency_list:
-                result.append([filename, dependency_list])
+def remove_whitespace_from_equals(string):
+    """receives string and returns it without inline comments"""
+    return string.replace(" =", "=").replace("= ", "=")
 
-        except IOError: #move to inside read function
-            continue #add meaningful message to log
-            # except IOError as ex:
-            #     logger.error('could not bla bla {0}'.format(ex.message))
 
-    return result
+def remove_comments(string):
+    """receives string and returns it without inline comments"""
+    return re.sub(re.compile("#.*?\n"), "", string)
 
-# path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
-# filename = "/setup.py"
-# field_dependency_name = "install_requires=["
-# check_all_filename_in_subdirs(path,
-#                               filename, field_dependency_name, "cloudify.*")
+
+def get_file_contents(path_to_file):
+    """receives a path to file and returns its contents as string"""
+    contents = None
+    try:
+        with open(path_to_file, 'r') as f:
+            contents = f.read()
+    except IOError as ex:
+        logging.error("unable to open file {0}".format(path_to_file))
+        logging.error(ex)
+        return ''
+    return contents
+
+
+def filter_list_for_regex(list_of_strings, filter_regex):
+    return [string for string in list_of_strings
+            if not re.match(re.compile(filter_regex), string)]
+
+def remove_quotes_and_whitespace_from_list(list):
+    return [remove_quotes_and_whitespace(x) for x in list]
+
+
+def remove_quotes_and_whitespace(string):
+    return string.replace(" ", "").replace(
+        "\'", "").replace("\"", "")
+
+
+class PythonSetuptoolsDependencyCheckerForFile():
+
+    def __init__(self, path_to_file,
+                 regex_to_ignore):
+        self._path = path_to_file
+        self._ignore_this = regex_to_ignore
+        self._list_of_dependencies = []
+        self._list_of_unprocessed_dependencies = []
+
+    def _get_list_of_versioned_dependencies(self):
+        return [x for x in self._list_of_dependencies if x["is_locked"]]
+
+    def _get_list_of_unversioned_dependencies(self):
+        return [x for x in self._list_of_dependencies if not x["is_locked"]]
+
+    def _get_append_list(self, file_contents):
+        """receives a string: file_contents which should be a setup.py file,
+        and a string regex: ignore_this
+        returns a list of requirements which
+        are added via the append clause
+        and ignores the ones that match the regex"""
+        phrase_start = "install_requires.append("
+        while phrase_start in file_contents:
+            starts_at = file_contents.find(phrase_start)
+            file_contents = file_contents[starts_at + len(phrase_start):]
+            ends_at = file_contents.find(")")
+            self._list_of_unprocessed_dependencies.append(file_contents[:ends_at])
+        return self._list_of_unprocessed_dependencies
+
+    def _get_install_requires_field_contents(self, file_contents):
+        """receives a string: file_contents which should be a setup.py file,
+        returns a list of requirements which
+        are added via the install_requires variable"""
+        phrase_start = "install_requires=["
+        file_contents = fix_unequal_conditions(
+            remove_comments(remove_whitespace_from_equals(
+                remove_quotes_and_whitespace(file_contents))))
+        if phrase_start in file_contents:
+            file_contents = ''.join(file_contents.splitlines())
+            starts_at = file_contents.find(phrase_start)
+            file_contents = file_contents[starts_at + len(phrase_start):]
+            ends_at = file_contents.find("]") - 2
+            file_contents = file_contents[:ends_at]
+            self._list_of_unprocessed_dependencies += file_contents.split(",")
+        return self._list_of_unprocessed_dependencies
+
+    def _get_dependency_with_latest_version(self, list_of_dependencies):
+        """receives a list of items from install_requires field
+        in the form of ITEMNAME RELATION VERSION
+        like pika==0.9.13
+        and returns the following dictionary:
+        [name, is_locked_to_specific_version, version_locked_to,
+        version available from pip]
+        per item"""
+        return [self.string_dependency_to_dict(dependency)
+                for dependency in list_of_dependencies if dependency]
+
+    def _process_dependency_list(self):
+        self._list_of_unprocessed_dependencies = remove_quotes_and_whitespace_from_list(
+            self._list_of_unprocessed_dependencies)
+        self._list_of_unprocessed_dependencies = filter_list_for_regex(
+            self._list_of_unprocessed_dependencies, self._ignore_this)
+        self._list_of_dependencies = \
+            [string_dependency_to_dict(dependency)
+             for dependency in self._list_of_unprocessed_dependencies]
+
+    def check_file(self):
+        file_contents = get_file_contents(self._path)
+        self._get_append_list(file_contents)
+        self._get_install_requires_field_contents(file_contents)
+        self._process_dependency_list()
+
+    def get_list_of_dependencies(self):
+        return self._list_of_dependencies
+
+class PythonSetuptoolsDependencyCheckerForDir():
+
+    def __init__(self, path_to_recurse, regex_to_ignore):
+        self._path = path_to_recurse
+        self._ignore_this = regex_to_ignore
+
+
+    def check_all_filename_in_subdirs(self):
+        """receives a path and setup filename to search for,
+        a field dependency name and regex to ignore
+        returns a dict of filename and the list of dependencies it uses,
+        whether they are version locked,
+        which version and the latest version of the package available on pip
+        """
+        for root, _, files in os.walk(self._path):
+            for f in files:
+                 if f == "setup.py":
+                    fullpath = os.path.join(root, f)
+                    check_file = PythonSetuptoolsDependencyCheckerForFile(fullpath,self._ignore_this)
+                    check_file.check_file()
+                    print fullpath
+                    print check_file.get_list_of_dependencies()
+
+path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
+field_dependency_name = "install_requires=["
+test = PythonSetuptoolsDependencyCheckerForDir(path, "cloudify.*").check_all_filename_in_subdirs()
+print test
