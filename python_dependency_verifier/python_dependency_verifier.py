@@ -18,6 +18,7 @@ import logging
 import os
 import re
 from yolk.pypi import CheeseShop
+import json
 
 filename_to_search_for = "setup.py"
 
@@ -168,12 +169,13 @@ class PythonSetuptoolsDependencyCheckerForFile():
     def get_list_of_dependencies(self):
         return self._list_of_dependencies
 
+
 class PythonSetuptoolsDependencyCheckerForDir():
 
     def __init__(self, path_to_recurse, regex_to_ignore):
         self._path = path_to_recurse
         self._ignore_this = regex_to_ignore
-
+        self._result = []
 
     def check_all_filename_in_subdirs(self):
         """receives a path and setup filename to search for,
@@ -184,14 +186,17 @@ class PythonSetuptoolsDependencyCheckerForDir():
         """
         for root, _, files in os.walk(self._path):
             for f in files:
-                 if f == "setup.py":
+                if f == "setup.py":
                     fullpath = os.path.join(root, f)
+                    logging.debug("checking file: {0}".format(fullpath))
                     check_file = PythonSetuptoolsDependencyCheckerForFile(fullpath,self._ignore_this)
                     check_file.check_file()
-                    print fullpath
-                    print check_file.get_list_of_dependencies()
+                self._result.append({"filename": fullpath,
+                                         "analysis": check_file.get_list_of_dependencies()})
+        return self._result
 
-path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
-field_dependency_name = "install_requires=["
-test = PythonSetuptoolsDependencyCheckerForDir(path, "cloudify.*").check_all_filename_in_subdirs()
-print test
+
+# path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
+# regex_to_ignore = "cloudify.*"
+# test = PythonSetuptoolsDependencyCheckerForDir(path, regex_to_ignore).check_all_filename_in_subdirs()
+# print json.dumps(test)
