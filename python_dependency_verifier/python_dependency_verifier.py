@@ -18,7 +18,6 @@ import logging
 import os
 import re
 from yolk.pypi import CheeseShop
-import json
 
 FILENAME_TO_SEARCH_FOR = "setup.py"
 
@@ -85,8 +84,10 @@ def _filter_list_for_regex(list_of_strings, filter_regex):
     return [string for string in list_of_strings
             if not re.match(re.compile(filter_regex), string)]
 
+
 def _remove_quotes_and_whitespace_from_list(list_to_remove_whitespace_from):
-    return [_remove_quotes_and_whitespace(x) for x in list_to_remove_whitespace_from]
+    return [_remove_quotes_and_whitespace(x) for x in
+            list_to_remove_whitespace_from]
 
 
 def _remove_quotes_and_whitespace(string):
@@ -120,7 +121,8 @@ class PythonSetuptoolsDependencyCheckerForFile():
             starts_at = file_contents.find(phrase_start)
             file_contents = file_contents[starts_at + len(phrase_start):]
             ends_at = file_contents.find(")")
-            self._list_of_unprocessed_dependencies.append(file_contents[:ends_at])
+            self._list_of_unprocessed_dependencies.append(
+                file_contents[:ends_at])
         return self._list_of_unprocessed_dependencies
 
     def _get_install_requires_field_contents(self, file_contents):
@@ -152,8 +154,9 @@ class PythonSetuptoolsDependencyCheckerForFile():
                 for dependency in list_of_dependencies if dependency]
 
     def _process_dependency_list(self):
-        self._list_of_unprocessed_dependencies = _remove_quotes_and_whitespace_from_list(
-            self._list_of_unprocessed_dependencies)
+        self._list_of_unprocessed_dependencies = \
+            _remove_quotes_and_whitespace_from_list(
+                self._list_of_unprocessed_dependencies)
         self._list_of_unprocessed_dependencies = _filter_list_for_regex(
             self._list_of_unprocessed_dependencies, self._ignore_this)
         self._list_of_dependencies = \
@@ -187,7 +190,8 @@ class PythonSetuptoolsDependencyCheckerForDir():
                 if f == FILENAME_TO_SEARCH_FOR:
                     fullpath = os.path.join(root, f)
                     logging.debug("checking file: {0}".format(fullpath))
-                    check_file = PythonSetuptoolsDependencyCheckerForFile(fullpath,self._ignore_this)
+                    check_file = PythonSetuptoolsDependencyCheckerForFile(
+                        fullpath, self._ignore_this)
                     self._result.append({"filename": fullpath,
                                          "analysis": check_file.check_file()})
         return self._result
