@@ -20,22 +20,22 @@ import re
 from yolk.pypi import CheeseShop
 import json
 
-filename_to_search_for = "setup.py"
+FILENAME_TO_SEARCH_FOR = "setup.py"
 
 
-def _string_dependency_to_dict(string_dependency):
+def _string_dependency_to_dict(dependency_string):
     """Receives an item from install_requires field
     in the form of ITEMNAME RELATION VERSION
     like pika==0.9.13
     and returns the following dictionary:
     [name, is_locked_to_specific_version, version_locked_to,
     latest version available from pip]"""
-    dependency_list = re.split("<|>|=", string_dependency)
+    dependency_params = re.split("<|>|=", dependency_string)
     is_locked = False  # better naming
-    if "==" in string_dependency:
+    if "==" in dependency_string:
         is_locked = True
-    dependency_name = dependency_list[0]
-    version_relation = string_dependency.replace(dependency_name, "")
+    dependency_name = dependency_params[0]
+    version_relation = dependency_string.replace(dependency_name, "")
     dependency_dict = {"name": dependency_name,
                        "is_locked": is_locked,
                        "version_relation": version_relation,
@@ -85,8 +85,8 @@ def _filter_list_for_regex(list_of_strings, filter_regex):
     return [string for string in list_of_strings
             if not re.match(re.compile(filter_regex), string)]
 
-def _remove_quotes_and_whitespace_from_list(list):
-    return [_remove_quotes_and_whitespace(x) for x in list]
+def _remove_quotes_and_whitespace_from_list(list_to_remove_whitespace_from):
+    return [_remove_quotes_and_whitespace(x) for x in list_to_remove_whitespace_from]
 
 
 def _remove_quotes_and_whitespace(string):
@@ -144,10 +144,10 @@ class PythonSetuptoolsDependencyCheckerForFile():
         """Receives a list of items from install_requires field
         in the form of ITEMNAME RELATION VERSION
         like pika==0.9.13
-        and returns the following dictionary:
-        [name, is_locked_to_specific_version, version_locked_to,
-        version available from pip]
-        per item"""
+        and returns the following dictionary per each item:
+        {name, is_locked_to_specific_version, version_locked_to,
+        version available from pip}
+        in a list"""
         return [self.string_dependency_to_dict(dependency)
                 for dependency in list_of_dependencies if dependency]
 
@@ -165,8 +165,6 @@ class PythonSetuptoolsDependencyCheckerForFile():
         self._get_append_list(file_contents)
         self._get_install_requires_field_contents(file_contents)
         self._process_dependency_list()
-
-    def get_list_of_dependencies(self):
         return self._list_of_dependencies
 
 
@@ -186,17 +184,10 @@ class PythonSetuptoolsDependencyCheckerForDir():
         """
         for root, _, files in os.walk(self._path):
             for f in files:
-                if f == "setup.py":
+                if f == FILENAME_TO_SEARCH_FOR:
                     fullpath = os.path.join(root, f)
                     logging.debug("checking file: {0}".format(fullpath))
                     check_file = PythonSetuptoolsDependencyCheckerForFile(fullpath,self._ignore_this)
-                    check_file.check_file()
-                self._result.append({"filename": fullpath,
-                                         "analysis": check_file.get_list_of_dependencies()})
+                    self._result.append({"filename": fullpath,
+                                         "analysis": check_file.check_file()})
         return self._result
-
-
-# path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
-# regex_to_ignore = "cloudify.*"
-# test = PythonSetuptoolsDependencyCheckerForDir(path, regex_to_ignore).check_all_filename_in_subdirs()
-# print json.dumps(test)
