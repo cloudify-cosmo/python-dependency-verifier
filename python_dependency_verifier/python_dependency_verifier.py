@@ -76,7 +76,7 @@ def _get_file_contents(path_to_file):
     except IOError as ex:
         logging.error("unable to open file {0}".format(path_to_file))
         logging.error(ex)
-        return ''
+        return
     return contents
 
 
