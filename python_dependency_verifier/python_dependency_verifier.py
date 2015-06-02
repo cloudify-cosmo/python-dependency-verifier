@@ -22,6 +22,18 @@ from yolk.pypi import CheeseShop
 FILENAME_TO_SEARCH_FOR = "setup.py"
 
 
+def check_dependencies_file(path_to_file, ignore_this_regex):
+    check_file = PythonSetuptoolsDependencyCheckerForFile(
+        path_to_file, ignore_this_regex)
+    return check_file.check_file()
+
+
+def check_dependencies_dir(path_to_dir, ignore_this_regex):
+    check_dir = PythonSetuptoolsDependencyCheckerForDir(
+        path_to_dir, ignore_this_regex)
+    return check_dir.check_all_filename_in_subdirs()
+
+
 def _string_dependency_to_dict(dependency_string):
     """Receives an item from install_requires field
     in the form of ITEMNAME RELATION VERSION
