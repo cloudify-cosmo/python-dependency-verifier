@@ -17,7 +17,7 @@ from setuptools import setup
 
 setup(
     name='python-dependency-verifier',
-    version='0.1',
+    version='0.2',
     author='Gil Zellner',
     author_email='gil@gigaspaces.com',
     packages=['python_dependency_verifier'],
