@@ -25,6 +25,6 @@ setup(
     description='A tool to make sure that all dependencies in a python '
                 'project are version locked and up to date',
     zip_safe=False,
-    install_requires=['yolk'],
+    install_requires=['yolk==0.4.3'],
     entry_points={}
 )
