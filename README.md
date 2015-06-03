@@ -10,16 +10,10 @@ and then in python:
 
 ```python
 from python_dependency_verifier import python_dependency_verifier
-
+import json
 
 path = '/Users/gilzellner/dev/git/cloudify-cosmo/'
-<<<<<<< HEAD
 regex_to_ignore = "cloudify.*"
-test = PythonSetuptoolsDependencyCheckerForDir(path, regex_to_ignore).check_all_filename_in_subdirs()
-print json.dumps(test)
-=======
-filename = "/setup.py"
-field_dependency_name = "install_requires=["
-check_all_filename_in_subdirs(path,filename, field_dependency_name, "cloudify.*")
->>>>>>> 2fb55bd9a5fcf6d3dd67ce980078ac18c5e8687e
+print json.dumps(python_dependency_verifier.check_dependencies_dir(
+    path, regex_to_ignore))
 ```
