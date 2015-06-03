@@ -24,12 +24,20 @@ class TestDependencies(unittest.TestCase):
         pass
 
     def check_file(self):
-        return self.assertEqual(python_dependency_verifier.check_dependencies_file(
-            "../../setup.py", "cloudify.*"), [{'is_locked': True, 'name': 'yolk', 'latest_available': '0.4.3', 'version_relation': '==0.4.3'}])
+        return self.assertEqual(
+            python_dependency_verifier.check_dependencies_file(
+                "../../setup.py", "cloudify.*"),
+            [{'is_locked': True, 'name': 'yolk',
+                'latest_available': '0.4.3', 'version_relation': '==0.4.3'}])
 
     def check_dir(self):
-        return self.assertEqual(python_dependency_verifier.check_dependencies_dir(
-            "../../", "cloudify.*"), [{'filename' : "../../setup.py", 'analysis': [{'is_locked': True, 'name': 'yolk', 'latest_available': '0.4.3', 'version_relation': '==0.4.3'}]}])
+        return self.assertEqual(
+            python_dependency_verifier.check_dependencies_dir(
+                "../../", "cloudify.*"),
+            [{'filename': "../../setup.py", 'analysis':
+                [{'is_locked': True, 'name': 'yolk',
+                  'latest_available': '0.4.3',
+                  'version_relation': '==0.4.3'}]}])
 
 
 newTest = TestDependencies().check_file()
