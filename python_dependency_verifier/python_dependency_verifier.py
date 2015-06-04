@@ -149,7 +149,7 @@ class PythonSetuptoolsDependencyCheckerForFile():
             file_contents = ''.join(file_contents.splitlines())
             starts_at = file_contents.find(phrase_start)
             file_contents = file_contents[starts_at + len(phrase_start):]
-            ends_at = file_contents.find("]") - 2
+            ends_at = file_contents.find("]")
             file_contents = file_contents[:ends_at]
             self._list_of_unprocessed_dependencies += file_contents.split(",")
         return self._list_of_unprocessed_dependencies
