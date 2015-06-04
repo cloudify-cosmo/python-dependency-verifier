@@ -23,14 +23,14 @@ class TestDependencies(unittest.TestCase):
     def runTest(self):
         pass
 
-    def check_file(self):
+    def test_check_file(self):
         return self.assertEqual(
             python_dependency_verifier.check_dependencies_file(
                 "../../setup.py", "cloudify.*"),
             [{'is_locked': True, 'name': 'yolk',
                 'latest_available': '0.4.3', 'version_relation': '==0.4.3'}])
 
-    def check_dir(self):
+    def test_check_dir(self):
         return self.assertEqual(
             python_dependency_verifier.check_dependencies_dir(
                 "../../", "cloudify.*"),
@@ -40,5 +40,5 @@ class TestDependencies(unittest.TestCase):
                   'version_relation': '==0.4.3'}]}])
 
 
-newTest = TestDependencies().check_file()
-newTest = TestDependencies().check_dir()
+newTest = TestDependencies().test_check_file()
+newTest = TestDependencies().test_check_dir()
