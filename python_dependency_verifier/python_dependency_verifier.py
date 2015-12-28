@@ -19,7 +19,8 @@ import os
 import re
 from yolk.pypi import CheeseShop
 
-FILENAME_TO_SEARCH_FOR = "setup.py"
+FILENAMES_TO_SEARCH_FOR = \
+    ['setup.py', 'dev-requirements.txt', 'test-requirements.txt']
 
 
 def check_dependencies_file(path_to_file, ignore_this_regex):
@@ -122,6 +123,12 @@ class PythonSetuptoolsDependencyCheckerForFile():
     def _get_list_of_unversioned_dependencies(self):
         return [x for x in self._list_of_dependencies if not x["is_locked"]]
 
+    def _get_plaintext_list(self,file_contents):
+        deps = file_contents.split('\n')
+        print deps
+        for line in file_contents.split('\n'):
+            self._list_of_unprocessed_dependencies += line
+
     def _get_append_list(self, file_contents):
         """Receives a string: file_contents which should be a setup.py file,
         and a string regex: ignore_this
@@ -177,8 +184,11 @@ class PythonSetuptoolsDependencyCheckerForFile():
 
     def check_file(self):
         file_contents = _get_file_contents(self._path)
-        self._get_append_list(file_contents)
-        self._get_install_requires_field_contents(file_contents)
+        if self._path.endswith(".py"):
+            self._get_append_list(file_contents)
+            self._get_install_requires_field_contents(file_contents)
+        if not self._path.endswith(".py"):
+            self._get_plaintext_list(file_contents)
         self._process_dependency_list()
         return self._list_of_dependencies
 
@@ -199,9 +209,9 @@ class PythonSetuptoolsDependencyCheckerForDir():
         """
         for root, _, files in os.walk(self._path):
             for f in files:
-                if f == FILENAME_TO_SEARCH_FOR:
+                if f in FILENAMES_TO_SEARCH_FOR:
                     fullpath = os.path.join(root, f)
-                    logging.debug("checking file: {0}".format(fullpath))
+                    logging.info("checking file: {0}".format(fullpath))
                     check_file = PythonSetuptoolsDependencyCheckerForFile(
                         fullpath, self._ignore_this)
                     self._result.append({"filename": fullpath,
